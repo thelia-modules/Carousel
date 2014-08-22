@@ -1,0 +1,16 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<database defaultIdMethod="native" name="thelia" namespace="Carousel\Model">
+    <!--
+    See propel documentation on http://propelorm.org for all information about schema file
+    -->
+
+    <table name="carousel">
+        <column autoIncrement="true" name="id" primaryKey="true" required="true" type="INTEGER" />
+        <column name="file" type="VARCHAR" size="255" />
+        <column name="position" type="INTEGER" />
+        <column name="alt" size="255" type="VARCHAR" />
+        <behavior name="timestampable" />
+    </table>
+
+    <external-schema filename="local/config/schema.xml" referenceOnly="true" />
+</database>

@@ -1,0 +1,43 @@
+<div class="general-block-decorator">
+    <div class="row">
+
+        <div class="col-md-12 title title-without-tabs">
+            {intl l='Edit your carousel.'}
+        </div>
+
+        <div class="form-container">
+            <div class="col-md-12">
+
+                {form name="carousel.image"}
+                    <form method="POST" action="{url path="/admin/module/carousel/upload"}" {form_enctype form=$form} class="clearfix">
+
+                        {form_hidden_fields form=$form}
+
+                        {form_field form=$form field='file'}
+                            <div class="form-group {if $error}has-error{/if}">
+                                <label for="{$label_attr.for}" class="control-label">{$label} : </label>
+                                <input type="file" id="{$label_attr.for}" name="{$name}" class="form-control" >
+                            </div>
+                        {/form_field}
+
+                        <button type="submit" id="hookanalytics-save" name="hookanalytics_save" value="save" class="form-submit-button btn btn-sm btn-default" title="{intl d='hookanalytics.ai' l='Save'}">{intl d='hookanalytics.ai' l='Save'}</button>
+                    </form>
+                {/form}
+                {ifloop rel="carousel.image"}
+                <div class="row">
+                {loop name="carousel.image" type="carousel"}
+                    {$FILE}
+                {/loop}
+                </div>
+                {/ifloop}
+
+            </div>
+
+        </div>
+
+    </div>
+</div>
+
+
+
+

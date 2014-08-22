@@ -1,0 +1,15 @@
+<section class="carousel-container">
+    <div id="carousel" class="carousel slide">
+        <div class="carousel-wrapper">
+            <div class="carousel-inner">
+                {loop type="carousel" name="carousel.front"}
+                <figure class="item {if $LOOP_COUNT == 1}active{/if}">
+                    <img src="{$FILE}" alt="{$ALT}">
+                </figure>
+                {/loop}
+            </div>
+        </div>
+        <a class="left carousel-control" href="#carousel" data-slide="prev"><span class="icon-prev"></span></a>
+        <a class="right carousel-control" href="#carousel" data-slide="next"><span class="icon-next"></span></a>
+    </div>
+</section><!-- #carousel -->
