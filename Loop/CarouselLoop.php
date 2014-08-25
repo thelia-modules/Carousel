@@ -19,8 +19,11 @@ use Thelia\Core\Template\Element\BaseLoop;
 use Thelia\Core\Template\Element\LoopResult;
 use Thelia\Core\Template\Element\LoopResultRow;
 use Thelia\Core\Template\Element\PropelSearchLoopInterface;
+use Thelia\Core\Template\Loop\Argument\Argument;
 use Thelia\Core\Template\Loop\Argument\ArgumentCollection;
 use Thelia\Core\Template\Loop\Image;
+use Thelia\Type\EnumType;
+use Thelia\Type\TypeCollection;
 
 
 /**
@@ -59,7 +62,19 @@ class CarouselLoop extends Image
     protected function getArgDefinitions()
     {
         return new ArgumentCollection(
-
+            Argument::createIntTypeArgument('width'),
+            Argument::createIntTypeArgument('height'),
+            Argument::createIntTypeArgument('rotation', 0),
+            Argument::createAnyTypeArgument('background_color'),
+            Argument::createIntTypeArgument('quality'),
+            new Argument(
+                'resize_mode',
+                new TypeCollection(
+                    new EnumType(array('crop', 'borders', 'none'))
+                ),
+                'none'
+            ),
+            Argument::createAnyTypeArgument('effects')
         );
     }
 
@@ -76,16 +91,49 @@ class CarouselLoop extends Image
             $loopResultRow = new LoopResultRow($carousel);
 
             $event = new ImageEvent();
-            $event->setResizeMode(\Thelia\Action\Image::KEEP_IMAGE_RATIO)
-                ->setSourceFilepath($carousel->getUploadDir() . DS . $carousel->getFile())
+            $event->setSourceFilepath($carousel->getUploadDir() . DS . $carousel->getFile())
                 ->setCacheSubdirectory('carousel');
+
+            switch ($this->getResizeMode()) {
+                case 'crop' :
+                    $resize_mode = \Thelia\Action\Image::EXACT_RATIO_WITH_CROP;
+                    break;
+
+                case 'borders' :
+                    $resize_mode = \Thelia\Action\Image::EXACT_RATIO_WITH_BORDERS;
+                    break;
+
+                case 'none' :
+                default:
+                    $resize_mode = \Thelia\Action\Image::KEEP_IMAGE_RATIO;
+
+            }
+
+            // Prepare tranformations
+            $width = $this->getWidth();
+            $height = $this->getHeight();
+            $rotation = $this->getRotation();
+            $background_color = $this->getBackgroundColor();
+            $quality = $this->getQuality();
+            $effects = $this->getEffects();
+
+            if (! is_null($width)) $event->setWidth($width);
+            if (! is_null($height)) $event->setHeight($height);
+            $event->setResizeMode($resize_mode);
+            if (! is_null($rotation)) $event->setRotation($rotation);
+            if (! is_null($background_color)) $event->setBackgroundColor($background_color);
+            if (! is_null($quality)) $event->setQuality($quality);
+            if (! is_null($effects)) $event->setEffects($effects);
 
             // Dispatch image processing event
             $this->dispatcher->dispatch(TheliaEvents::IMAGE_PROCESS, $event);
 
             $loopResultRow
                 ->set('ID', $carousel->getId())
-                ->set('FILE', $event->getOriginalFileUrl())
+                ->set("IMAGE_URL"           , $event->getFileUrl())
+                ->set("ORIGINAL_IMAGE_URL"  , $event->getOriginalFileUrl())
+                ->set("IMAGE_PATH"          , $event->getCacheFilepath())
+                ->set("ORIGINAL_IMAGE_PATH" , $event->getSourceFilepath())
                 ->set('ALT', $carousel->getAlt())
             ;
 

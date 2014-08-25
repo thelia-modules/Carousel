@@ -1,10 +1,11 @@
+{ifloop rel="carousel.front"}
 <section class="carousel-container">
     <div id="carousel" class="carousel slide">
         <div class="carousel-wrapper">
             <div class="carousel-inner">
-                {loop type="carousel" name="carousel.front"}
+                {loop type="carousel" name="carousel.front" width="1200" height="390" resize_mode="borders"}
                 <figure class="item {if $LOOP_COUNT == 1}active{/if}">
-                    <img src="{$FILE}" alt="{$ALT}">
+                    <img src="{$IMAGE_URL}" alt="{$ALT}">
                 </figure>
                 {/loop}
             </div>
@@ -13,3 +14,4 @@
         <a class="right carousel-control" href="#carousel" data-slide="next"><span class="icon-next"></span></a>
     </div>
 </section><!-- #carousel -->
+{/ifloop}
