@@ -16,6 +16,7 @@
         <form name="MyFormName" class="Carousel\Form\MySuperForm" />
         -->
         <form name="carousel.image" class="Carousel\Form\CarouselImageForm" />
+        <form name="carousel.update" class="Carousel\Form\CarouselUpdateForm" />
     </forms>
 
     <commands>

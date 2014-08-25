@@ -31,4 +31,12 @@
         <default key="_controller">Carousel\Controller\ConfigurationController::uploadImage</default>
     </route>
 
+    <route id="carousel.update" path="/admin/module/carousel/update" methods="post">
+        <default key="_controller">Carousel\Controller\ConfigurationController::updateAction</default>
+    </route>
+
+    <route id="carousel.update" path="/admin/module/carousel/delete" methods="post">
+        <default key="_controller">Carousel\Controller\ConfigurationController::deleteAction</default>
+    </route>
+
 </routes>

@@ -17,5 +17,9 @@ use Carousel\Model\Base\CarouselQuery as BaseCarouselQuery;
  */
 class CarouselQuery extends BaseCarouselQuery
 {
-
+    public function findAllByPosition()
+    {
+        return $this->orderByPosition()
+            ->find();
+    }
 } // CarouselQuery
