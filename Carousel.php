@@ -35,6 +35,6 @@ class Carousel extends BaseModule
 
     public function getUploadDir()
     {
-        return __DIR__ . DS . 'templates' . DS . 'frontOffice' . DS . 'default' . DS . 'assets' . DS . 'img' . DS . 'carousel';
+        return __DIR__ . DS . 'media' . DS . 'carousel';
     }
 }
