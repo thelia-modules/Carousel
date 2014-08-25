@@ -50,6 +50,6 @@ The carousel's loop allows you to customize each images like the image's loop. Y
 {/loop}
 ```
 
-## How to overload ?
+## How to override ?
 
 If you want your own carousel in your tempalte, create the directory ```modules/Carousel``` then create the template ```carousel.html``` in this directory. Here you can create your own carousel and the replace the default template provided in the module.
