@@ -11,20 +11,20 @@
 /*************************************************************************************/
 
 namespace Carousel\Controller;
+
 use Carousel\Form\CarouselImageForm;
 use Carousel\Form\CarouselUpdateForm;
 use Carousel\Model\Carousel;
 use Carousel\Model\CarouselQuery;
+use Symfony\Component\Form\Form;
 use Symfony\Component\HttpFoundation\RedirectResponse;
 use Thelia\Controller\Admin\BaseAdminController;
 use Thelia\Core\Event\File\FileCreateOrUpdateEvent;
 use Thelia\Core\Event\TheliaEvents;
-use Thelia\Core\HttpFoundation\Response;
 use Thelia\Core\Security\AccessManager;
 use Thelia\Core\Security\Resource\AdminResources;
 use Thelia\Form\Exception\FormValidationException;
 use Thelia\Tools\URL;
-
 
 /**
  * Class ConfigurationController
@@ -37,15 +37,14 @@ class ConfigurationController extends BaseAdminController
     public function uploadImage()
     {
         if (null !== $response = $this->checkAuth(AdminResources::MODULE, ['carousel'], AccessManager::CREATE)) {
-           return $response;
+            return $response;
         }
 
         $request = $this->getRequest();
         $form = new CarouselImageForm($request);
         $error_message = null;
         try {
-
-            $carouselImageForm = $this->validateForm($form);
+            $this->validateForm($form);
 
             /** @var \Symfony\Component\HttpFoundation\File\UploadedFile $fileBeingUploaded */
             $fileBeingUploaded = $request->files->get(sprintf('%s[file]', $form->getName()), null, true);
@@ -61,9 +60,9 @@ class ConfigurationController extends BaseAdminController
                 $fileCreateOrUpdateEvent
             );
 
-            $response =  $this->generateRedirect();
+            $response =  $this->redirectToConfigurationPage();
 
-        } catch(FormValidationException $e) {
+        } catch (FormValidationException $e) {
             $error_message = $this->createStandardFormValidationErrorMessage($e);
         }
 
@@ -85,6 +84,19 @@ class ConfigurationController extends BaseAdminController
         return $response;
     }
 
+    /**
+     * @param Form $form
+     * @param string $fieldName
+     * @param int $id
+     * @return string
+     */
+    protected function getFormFieldValue($form, $fieldName, $id)
+    {
+        $value = $form->get(sprintf('%s%d', $fieldName, $id))->getData();
+
+        return $value;
+    }
+
     public function updateAction()
     {
         if (null !== $response = $this->checkAuth(AdminResources::MODULE, ['carousel'], AccessManager::UPDATE)) {
@@ -95,19 +107,33 @@ class ConfigurationController extends BaseAdminController
 
         $form = new CarouselUpdateForm($request);
         $error_message = null;
+
         try {
             $updateForm = $this->validateForm($form);
 
             $carousels = CarouselQuery::create()->findAllByPosition();
 
-            foreach ($carousels as $carousel) {
-                $carousel->setAlt(
-                    $updateForm->get(sprintf('alt%d', $carousel->getId()))->getData()
-                )->save();
-            }
-            $response =  $this->generateRedirect();
+            $locale = $this->getCurrentEditionLocale();
 
-        } catch(FormValidationException $e) {
+            /** @var Carousel $carousel */
+            foreach ($carousels as $carousel) {
+                $id = $carousel->getId();
+
+                $carousel
+                    ->setPosition($this->getFormFieldValue($updateForm, 'position', $id))
+                    ->setUrl($this->getFormFieldValue($updateForm, 'url', $id))
+                    ->setLocale($locale)
+                    ->setTitle($this->getFormFieldValue($updateForm, 'title', $id))
+                    ->setAlt($this->getFormFieldValue($updateForm, 'alt', $id))
+                    ->setChapo($this->getFormFieldValue($updateForm, 'chapo', $id))
+                    ->setDescription($this->getFormFieldValue($updateForm, 'description', $id))
+                    ->setPostscriptum($this->getFormFieldValue($updateForm, 'postscriptum', $id))
+                ->save();
+            }
+
+            $response =  $this->redirectToConfigurationPage();
+
+        } catch (FormValidationException $e) {
             $error_message = $this->createStandardFormValidationErrorMessage($e);
         }
 
@@ -118,12 +144,7 @@ class ConfigurationController extends BaseAdminController
                 $form
             );
 
-            $response = $this->render(
-                "module-configure",
-                [
-                    'module_code' => 'Carousel'
-                ]
-            );
+            $response = $this->render("module-configure", [ 'module_code' => 'Carousel' ]);
         }
 
         return $response;
@@ -146,11 +167,11 @@ class ConfigurationController extends BaseAdminController
             }
         }
 
-        return $this->generateRedirect();
+        return $this->redirectToConfigurationPage();
     }
 
-    protected function generateRedirect()
+    protected function redirectToConfigurationPage()
     {
         return RedirectResponse::create(URL::getInstance()->absoluteUrl('/admin/module/Carousel'));
     }
-} 
+}

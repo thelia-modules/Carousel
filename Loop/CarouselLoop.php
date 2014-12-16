@@ -11,20 +11,18 @@
 /*************************************************************************************/
 
 namespace Carousel\Loop;
+
 use Carousel\Carousel;
 use Carousel\Model\CarouselQuery;
 use Thelia\Core\Event\Image\ImageEvent;
 use Thelia\Core\Event\TheliaEvents;
-use Thelia\Core\Template\Element\BaseLoop;
 use Thelia\Core\Template\Element\LoopResult;
 use Thelia\Core\Template\Element\LoopResultRow;
-use Thelia\Core\Template\Element\PropelSearchLoopInterface;
 use Thelia\Core\Template\Loop\Argument\Argument;
 use Thelia\Core\Template\Loop\Argument\ArgumentCollection;
 use Thelia\Core\Template\Loop\Image;
 use Thelia\Type\EnumType;
 use Thelia\Type\TypeCollection;
-
 
 /**
  * Class CarouselLoop
@@ -36,28 +34,7 @@ class CarouselLoop extends Image
 
 
     /**
-     * Definition of loop arguments
-     *
-     * example :
-     *
-     * public function getArgDefinitions()
-     * {
-     *  return new ArgumentCollection(
-     *
-     *       Argument::createIntListTypeArgument('id'),
-     *           new Argument(
-     *           'ref',
-     *           new TypeCollection(
-     *               new Type\AlphaNumStringListType()
-     *           )
-     *       ),
-     *       Argument::createIntListTypeArgument('category'),
-     *       Argument::createBooleanTypeArgument('new'),
-     *       ...
-     *   );
-     * }
-     *
-     * @return \Thelia\Core\Template\Loop\Argument\ArgumentCollection
+     * @inheritdoc
      */
     protected function getArgDefinitions()
     {
@@ -95,15 +72,15 @@ class CarouselLoop extends Image
                 ->setCacheSubdirectory('carousel');
 
             switch ($this->getResizeMode()) {
-                case 'crop' :
+                case 'crop':
                     $resize_mode = \Thelia\Action\Image::EXACT_RATIO_WITH_CROP;
                     break;
 
-                case 'borders' :
+                case 'borders':
                     $resize_mode = \Thelia\Action\Image::EXACT_RATIO_WITH_BORDERS;
                     break;
 
-                case 'none' :
+                case 'none':
                 default:
                     $resize_mode = \Thelia\Action\Image::KEEP_IMAGE_RATIO;
 
@@ -117,25 +94,44 @@ class CarouselLoop extends Image
             $quality = $this->getQuality();
             $effects = $this->getEffects();
 
-            if (! is_null($width)) $event->setWidth($width);
-            if (! is_null($height)) $event->setHeight($height);
+            if (!is_null($width)) {
+                $event->setWidth($width);
+            }
+            if (!is_null($height)) {
+                $event->setHeight($height);
+            }
             $event->setResizeMode($resize_mode);
-            if (! is_null($rotation)) $event->setRotation($rotation);
-            if (! is_null($background_color)) $event->setBackgroundColor($background_color);
-            if (! is_null($quality)) $event->setQuality($quality);
-            if (! is_null($effects)) $event->setEffects($effects);
+            if (!is_null($rotation)) {
+                $event->setRotation($rotation);
+            }
+            if (!is_null($background_color)) {
+                $event->setBackgroundColor($background_color);
+            }
+            if (!is_null($quality)) {
+                $event->setQuality($quality);
+            }
+            if (!is_null($effects)) {
+                $event->setEffects($effects);
+            }
 
             // Dispatch image processing event
             $this->dispatcher->dispatch(TheliaEvents::IMAGE_PROCESS, $event);
 
             $loopResultRow
                 ->set('ID', $carousel->getId())
-                ->set("IMAGE_URL"           , $event->getFileUrl())
-                ->set("ORIGINAL_IMAGE_URL"  , $event->getOriginalFileUrl())
-                ->set("IMAGE_PATH"          , $event->getCacheFilepath())
-                ->set("ORIGINAL_IMAGE_PATH" , $event->getSourceFilepath())
-                ->set('ALT', $carousel->getAlt())
-            ;
+                ->set("LOCALE", $this->locale)
+                ->set("IMAGE_URL", $event->getFileUrl())
+                ->set("ORIGINAL_IMAGE_URL", $event->getOriginalFileUrl())
+                ->set("IMAGE_PATH", $event->getCacheFilepath())
+                ->set("ORIGINAL_IMAGE_PATH", $event->getSourceFilepath())
+                ->set("TITLE", $carousel->getVirtualColumn('i18n_TITLE'))
+                ->set("CHAPO", $carousel->getVirtualColumn('i18n_CHAPO'))
+                ->set("DESCRIPTION", $carousel->getVirtualColumn('i18n_DESCRIPTION'))
+                ->set("POSTSCRIPTUM", $carousel->getVirtualColumn('i18n_POSTSCRIPTUM'))
+                ->set("ALT", $carousel->getVirtualColumn('i18n_ALT'))
+                ->set("URL", $carousel->getUrl())
+                ->set('POSITION', $carousel->getPosition())
+                ;
 
             $loopResult->addRow($loopResultRow);
         }
@@ -150,9 +146,11 @@ class CarouselLoop extends Image
      */
     public function buildModelCriteria()
     {
-        $search = CarouselQuery::create()
-            ->orderByPosition()
-        ;
+        $search = CarouselQuery::create();
+
+        $this->configureI18nProcessing($search, [ 'ALT', 'TITLE', 'CHAPO', 'DESCRIPTION', 'POSTSCRIPTUM' ]);
+
+        $search->orderByPosition();
 
         return $search;
     }

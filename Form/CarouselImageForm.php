@@ -11,6 +11,7 @@
 /*************************************************************************************/
 
 namespace Carousel\Form;
+
 use Carousel\Carousel;
 use Symfony\Component\Validator\Constraints\Image;
 use Thelia\Core\Translation\Translator;
@@ -24,41 +25,26 @@ use Thelia\Form\BaseForm;
  */
 class CarouselImageForm extends BaseForm
 {
-
     /**
-     *
-     * in this function you add all the fields you need for your Form.
-     * Form this you have to call add method on $this->formBuilder attribute :
-     *
-     * $this->formBuilder->add("name", "text")
-     *   ->add("email", "email", array(
-     *           "attr" => array(
-     *               "class" => "field"
-     *           ),
-     *           "label" => "email",
-     *           "constraints" => array(
-     *               new \Symfony\Component\Validator\Constraints\NotBlank()
-     *           )
-     *       )
-     *   )
-     *   ->add('age', 'integer');
-     *
-     * @return null
+     * @inheritdoc
      */
     protected function buildForm()
     {
         $translator = Translator::getInstance();
         $this->formBuilder
-            ->add('file','file', [
-                'constraints' => [
-                    new Image()
-                ],
-                'label' => $translator->trans('Carousel image', [], Carousel::DOMAIN_NAME),
-                'label_attr' => [
-                    'for' => 'file'
+            ->add(
+                'file',
+                'file',
+                [
+                    'constraints' => [
+                        new Image()
+                    ],
+                    'label' => $translator->trans('Carousel image', [], Carousel::DOMAIN_NAME),
+                    'label_attr' => [
+                        'for' => 'file'
+                    ]
                 ]
-            ])
-        ;
+            );
     }
 
     /**

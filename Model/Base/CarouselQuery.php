@@ -5,11 +5,15 @@ namespace Carousel\Model\Base;
 use \Exception;
 use \PDO;
 use Carousel\Model\Carousel as ChildCarousel;
+use Carousel\Model\CarouselI18nQuery as ChildCarouselI18nQuery;
 use Carousel\Model\CarouselQuery as ChildCarouselQuery;
 use Carousel\Model\Map\CarouselTableMap;
 use Propel\Runtime\Propel;
 use Propel\Runtime\ActiveQuery\Criteria;
 use Propel\Runtime\ActiveQuery\ModelCriteria;
+use Propel\Runtime\ActiveQuery\ModelJoin;
+use Propel\Runtime\Collection\Collection;
+use Propel\Runtime\Collection\ObjectCollection;
 use Propel\Runtime\Connection\ConnectionInterface;
 use Propel\Runtime\Exception\PropelException;
 
@@ -21,14 +25,14 @@ use Propel\Runtime\Exception\PropelException;
  * @method     ChildCarouselQuery orderById($order = Criteria::ASC) Order by the id column
  * @method     ChildCarouselQuery orderByFile($order = Criteria::ASC) Order by the file column
  * @method     ChildCarouselQuery orderByPosition($order = Criteria::ASC) Order by the position column
- * @method     ChildCarouselQuery orderByAlt($order = Criteria::ASC) Order by the alt column
+ * @method     ChildCarouselQuery orderByUrl($order = Criteria::ASC) Order by the url column
  * @method     ChildCarouselQuery orderByCreatedAt($order = Criteria::ASC) Order by the created_at column
  * @method     ChildCarouselQuery orderByUpdatedAt($order = Criteria::ASC) Order by the updated_at column
  *
  * @method     ChildCarouselQuery groupById() Group by the id column
  * @method     ChildCarouselQuery groupByFile() Group by the file column
  * @method     ChildCarouselQuery groupByPosition() Group by the position column
- * @method     ChildCarouselQuery groupByAlt() Group by the alt column
+ * @method     ChildCarouselQuery groupByUrl() Group by the url column
  * @method     ChildCarouselQuery groupByCreatedAt() Group by the created_at column
  * @method     ChildCarouselQuery groupByUpdatedAt() Group by the updated_at column
  *
@@ -36,20 +40,24 @@ use Propel\Runtime\Exception\PropelException;
  * @method     ChildCarouselQuery rightJoin($relation) Adds a RIGHT JOIN clause to the query
  * @method     ChildCarouselQuery innerJoin($relation) Adds a INNER JOIN clause to the query
  *
+ * @method     ChildCarouselQuery leftJoinCarouselI18n($relationAlias = null) Adds a LEFT JOIN clause to the query using the CarouselI18n relation
+ * @method     ChildCarouselQuery rightJoinCarouselI18n($relationAlias = null) Adds a RIGHT JOIN clause to the query using the CarouselI18n relation
+ * @method     ChildCarouselQuery innerJoinCarouselI18n($relationAlias = null) Adds a INNER JOIN clause to the query using the CarouselI18n relation
+ *
  * @method     ChildCarousel findOne(ConnectionInterface $con = null) Return the first ChildCarousel matching the query
  * @method     ChildCarousel findOneOrCreate(ConnectionInterface $con = null) Return the first ChildCarousel matching the query, or a new ChildCarousel object populated from the query conditions when no match is found
  *
  * @method     ChildCarousel findOneById(int $id) Return the first ChildCarousel filtered by the id column
  * @method     ChildCarousel findOneByFile(string $file) Return the first ChildCarousel filtered by the file column
  * @method     ChildCarousel findOneByPosition(int $position) Return the first ChildCarousel filtered by the position column
- * @method     ChildCarousel findOneByAlt(string $alt) Return the first ChildCarousel filtered by the alt column
+ * @method     ChildCarousel findOneByUrl(string $url) Return the first ChildCarousel filtered by the url column
  * @method     ChildCarousel findOneByCreatedAt(string $created_at) Return the first ChildCarousel filtered by the created_at column
  * @method     ChildCarousel findOneByUpdatedAt(string $updated_at) Return the first ChildCarousel filtered by the updated_at column
  *
  * @method     array findById(int $id) Return ChildCarousel objects filtered by the id column
  * @method     array findByFile(string $file) Return ChildCarousel objects filtered by the file column
  * @method     array findByPosition(int $position) Return ChildCarousel objects filtered by the position column
- * @method     array findByAlt(string $alt) Return ChildCarousel objects filtered by the alt column
+ * @method     array findByUrl(string $url) Return ChildCarousel objects filtered by the url column
  * @method     array findByCreatedAt(string $created_at) Return ChildCarousel objects filtered by the created_at column
  * @method     array findByUpdatedAt(string $updated_at) Return ChildCarousel objects filtered by the updated_at column
  *
@@ -140,7 +148,7 @@ abstract class CarouselQuery extends ModelCriteria
      */
     protected function findPkSimple($key, $con)
     {
-        $sql = 'SELECT ID, FILE, POSITION, ALT, CREATED_AT, UPDATED_AT FROM carousel WHERE ID = :p0';
+        $sql = 'SELECT ID, FILE, POSITION, URL, CREATED_AT, UPDATED_AT FROM carousel WHERE ID = :p0';
         try {
             $stmt = $con->prepare($sql);
             $stmt->bindValue(':p0', $key, PDO::PARAM_INT);
@@ -341,32 +349,32 @@ abstract class CarouselQuery extends ModelCriteria
     }
 
     /**
-     * Filter the query on the alt column
+     * Filter the query on the url column
      *
      * Example usage:
      * <code>
-     * $query->filterByAlt('fooValue');   // WHERE alt = 'fooValue'
-     * $query->filterByAlt('%fooValue%'); // WHERE alt LIKE '%fooValue%'
+     * $query->filterByUrl('fooValue');   // WHERE url = 'fooValue'
+     * $query->filterByUrl('%fooValue%'); // WHERE url LIKE '%fooValue%'
      * </code>
      *
-     * @param     string $alt The value to use as filter.
+     * @param     string $url The value to use as filter.
      *              Accepts wildcards (* and % trigger a LIKE)
      * @param     string $comparison Operator to use for the column comparison, defaults to Criteria::EQUAL
      *
      * @return ChildCarouselQuery The current query, for fluid interface
      */
-    public function filterByAlt($alt = null, $comparison = null)
+    public function filterByUrl($url = null, $comparison = null)
     {
         if (null === $comparison) {
-            if (is_array($alt)) {
+            if (is_array($url)) {
                 $comparison = Criteria::IN;
-            } elseif (preg_match('/[\%\*]/', $alt)) {
-                $alt = str_replace('*', '%', $alt);
+            } elseif (preg_match('/[\%\*]/', $url)) {
+                $url = str_replace('*', '%', $url);
                 $comparison = Criteria::LIKE;
             }
         }
 
-        return $this->addUsingAlias(CarouselTableMap::ALT, $alt, $comparison);
+        return $this->addUsingAlias(CarouselTableMap::URL, $url, $comparison);
     }
 
     /**
@@ -453,6 +461,79 @@ abstract class CarouselQuery extends ModelCriteria
         }
 
         return $this->addUsingAlias(CarouselTableMap::UPDATED_AT, $updatedAt, $comparison);
+    }
+
+    /**
+     * Filter the query by a related \Carousel\Model\CarouselI18n object
+     *
+     * @param \Carousel\Model\CarouselI18n|ObjectCollection $carouselI18n  the related object to use as filter
+     * @param string $comparison Operator to use for the column comparison, defaults to Criteria::EQUAL
+     *
+     * @return ChildCarouselQuery The current query, for fluid interface
+     */
+    public function filterByCarouselI18n($carouselI18n, $comparison = null)
+    {
+        if ($carouselI18n instanceof \Carousel\Model\CarouselI18n) {
+            return $this
+                ->addUsingAlias(CarouselTableMap::ID, $carouselI18n->getId(), $comparison);
+        } elseif ($carouselI18n instanceof ObjectCollection) {
+            return $this
+                ->useCarouselI18nQuery()
+                ->filterByPrimaryKeys($carouselI18n->getPrimaryKeys())
+                ->endUse();
+        } else {
+            throw new PropelException('filterByCarouselI18n() only accepts arguments of type \Carousel\Model\CarouselI18n or Collection');
+        }
+    }
+
+    /**
+     * Adds a JOIN clause to the query using the CarouselI18n relation
+     *
+     * @param     string $relationAlias optional alias for the relation
+     * @param     string $joinType Accepted values are null, 'left join', 'right join', 'inner join'
+     *
+     * @return ChildCarouselQuery The current query, for fluid interface
+     */
+    public function joinCarouselI18n($relationAlias = null, $joinType = 'LEFT JOIN')
+    {
+        $tableMap = $this->getTableMap();
+        $relationMap = $tableMap->getRelation('CarouselI18n');
+
+        // create a ModelJoin object for this join
+        $join = new ModelJoin();
+        $join->setJoinType($joinType);
+        $join->setRelationMap($relationMap, $this->useAliasInSQL ? $this->getModelAlias() : null, $relationAlias);
+        if ($previousJoin = $this->getPreviousJoin()) {
+            $join->setPreviousJoin($previousJoin);
+        }
+
+        // add the ModelJoin to the current object
+        if ($relationAlias) {
+            $this->addAlias($relationAlias, $relationMap->getRightTable()->getName());
+            $this->addJoinObject($join, $relationAlias);
+        } else {
+            $this->addJoinObject($join, 'CarouselI18n');
+        }
+
+        return $this;
+    }
+
+    /**
+     * Use the CarouselI18n relation CarouselI18n object
+     *
+     * @see useQuery()
+     *
+     * @param     string $relationAlias optional alias for the relation,
+     *                                   to be used as main alias in the secondary query
+     * @param     string $joinType Accepted values are null, 'left join', 'right join', 'inner join'
+     *
+     * @return   \Carousel\Model\CarouselI18nQuery A secondary query class using the current class as primary query
+     */
+    public function useCarouselI18nQuery($relationAlias = null, $joinType = 'LEFT JOIN')
+    {
+        return $this
+            ->joinCarouselI18n($relationAlias, $joinType)
+            ->useQuery($relationAlias ? $relationAlias : 'CarouselI18n', '\Carousel\Model\CarouselI18nQuery');
     }
 
     /**
@@ -610,6 +691,63 @@ abstract class CarouselQuery extends ModelCriteria
     public function firstCreatedFirst()
     {
         return $this->addAscendingOrderByColumn(CarouselTableMap::CREATED_AT);
+    }
+
+    // i18n behavior
+
+    /**
+     * Adds a JOIN clause to the query using the i18n relation
+     *
+     * @param     string $locale Locale to use for the join condition, e.g. 'fr_FR'
+     * @param     string $relationAlias optional alias for the relation
+     * @param     string $joinType Accepted values are null, 'left join', 'right join', 'inner join'. Defaults to left join.
+     *
+     * @return    ChildCarouselQuery The current query, for fluid interface
+     */
+    public function joinI18n($locale = 'en_US', $relationAlias = null, $joinType = Criteria::LEFT_JOIN)
+    {
+        $relationName = $relationAlias ? $relationAlias : 'CarouselI18n';
+
+        return $this
+            ->joinCarouselI18n($relationAlias, $joinType)
+            ->addJoinCondition($relationName, $relationName . '.Locale = ?', $locale);
+    }
+
+    /**
+     * Adds a JOIN clause to the query and hydrates the related I18n object.
+     * Shortcut for $c->joinI18n($locale)->with()
+     *
+     * @param     string $locale Locale to use for the join condition, e.g. 'fr_FR'
+     * @param     string $joinType Accepted values are null, 'left join', 'right join', 'inner join'. Defaults to left join.
+     *
+     * @return    ChildCarouselQuery The current query, for fluid interface
+     */
+    public function joinWithI18n($locale = 'en_US', $joinType = Criteria::LEFT_JOIN)
+    {
+        $this
+            ->joinI18n($locale, null, $joinType)
+            ->with('CarouselI18n');
+        $this->with['CarouselI18n']->setIsWithOneToMany(false);
+
+        return $this;
+    }
+
+    /**
+     * Use the I18n relation query object
+     *
+     * @see       useQuery()
+     *
+     * @param     string $locale Locale to use for the join condition, e.g. 'fr_FR'
+     * @param     string $relationAlias optional alias for the relation
+     * @param     string $joinType Accepted values are null, 'left join', 'right join', 'inner join'. Defaults to left join.
+     *
+     * @return    ChildCarouselI18nQuery A secondary query class using the current class as primary query
+     */
+    public function useI18nQuery($locale = 'en_US', $relationAlias = null, $joinType = Criteria::LEFT_JOIN)
+    {
+        return $this
+            ->joinI18n($locale, $relationAlias, $joinType)
+            ->useQuery($relationAlias ? $relationAlias : 'CarouselI18n', '\Carousel\Model\CarouselI18nQuery');
     }
 
 } // CarouselQuery

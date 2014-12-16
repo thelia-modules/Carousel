@@ -41,6 +41,13 @@ The carousel's loop allows you to customize each images like the image's loop. Y
 |$IMAGE_PATH    |The absolute path to the generated image file  |
 |$ORIGINAL_IMAGE_PATH   |The absolute path to the original image file  |
 |$ALT   |alt text |
+|$TITLE   |the image title |
+|$CHAPO   |the image summary |
+|$DESCRIPTION   |the image description |
+|$POSTSCRIPTUM   |the image conclusion |
+|$LOCALE   |the textual elements locale |
+|$POSITION   |the image position in the carousel |
+|$URL   |the related URL |
 
 ### Exemple
 
