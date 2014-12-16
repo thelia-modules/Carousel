@@ -6,6 +6,8 @@ use \DateTime;
 use \Exception;
 use \PDO;
 use Carousel\Model\Carousel as ChildCarousel;
+use Carousel\Model\CarouselI18n as ChildCarouselI18n;
+use Carousel\Model\CarouselI18nQuery as ChildCarouselI18nQuery;
 use Carousel\Model\CarouselQuery as ChildCarouselQuery;
 use Carousel\Model\Map\CarouselTableMap;
 use Propel\Runtime\Propel;
@@ -13,6 +15,7 @@ use Propel\Runtime\ActiveQuery\Criteria;
 use Propel\Runtime\ActiveQuery\ModelCriteria;
 use Propel\Runtime\ActiveRecord\ActiveRecordInterface;
 use Propel\Runtime\Collection\Collection;
+use Propel\Runtime\Collection\ObjectCollection;
 use Propel\Runtime\Connection\ConnectionInterface;
 use Propel\Runtime\Exception\BadMethodCallException;
 use Propel\Runtime\Exception\PropelException;
@@ -73,10 +76,10 @@ abstract class Carousel implements ActiveRecordInterface
     protected $position;
 
     /**
-     * The value for the alt field.
+     * The value for the url field.
      * @var        string
      */
-    protected $alt;
+    protected $url;
 
     /**
      * The value for the created_at field.
@@ -91,12 +94,38 @@ abstract class Carousel implements ActiveRecordInterface
     protected $updated_at;
 
     /**
+     * @var        ObjectCollection|ChildCarouselI18n[] Collection to store aggregation of ChildCarouselI18n objects.
+     */
+    protected $collCarouselI18ns;
+    protected $collCarouselI18nsPartial;
+
+    /**
      * Flag to prevent endless save loop, if this object is referenced
      * by another object which falls in this transaction.
      *
      * @var boolean
      */
     protected $alreadyInSave = false;
+
+    // i18n behavior
+
+    /**
+     * Current locale
+     * @var        string
+     */
+    protected $currentLocale = 'en_US';
+
+    /**
+     * Current translation objects
+     * @var        array[ChildCarouselI18n]
+     */
+    protected $currentTranslations;
+
+    /**
+     * An array of objects scheduled for deletion.
+     * @var ObjectCollection
+     */
+    protected $carouselI18nsScheduledForDeletion = null;
 
     /**
      * Initializes internal state of Carousel\Model\Base\Carousel object.
@@ -390,14 +419,14 @@ abstract class Carousel implements ActiveRecordInterface
     }
 
     /**
-     * Get the [alt] column value.
+     * Get the [url] column value.
      *
      * @return   string
      */
-    public function getAlt()
+    public function getUrl()
     {
 
-        return $this->alt;
+        return $this->url;
     }
 
     /**
@@ -504,25 +533,25 @@ abstract class Carousel implements ActiveRecordInterface
     } // setPosition()
 
     /**
-     * Set the value of [alt] column.
+     * Set the value of [url] column.
      *
      * @param      string $v new value
      * @return   \Carousel\Model\Carousel The current object (for fluent API support)
      */
-    public function setAlt($v)
+    public function setUrl($v)
     {
         if ($v !== null) {
             $v = (string) $v;
         }
 
-        if ($this->alt !== $v) {
-            $this->alt = $v;
-            $this->modifiedColumns[CarouselTableMap::ALT] = true;
+        if ($this->url !== $v) {
+            $this->url = $v;
+            $this->modifiedColumns[CarouselTableMap::URL] = true;
         }
 
 
         return $this;
-    } // setAlt()
+    } // setUrl()
 
     /**
      * Sets the value of [created_at] column to a normalized version of the date/time value specified.
@@ -612,8 +641,8 @@ abstract class Carousel implements ActiveRecordInterface
             $col = $row[TableMap::TYPE_NUM == $indexType ? 2 + $startcol : CarouselTableMap::translateFieldName('Position', TableMap::TYPE_PHPNAME, $indexType)];
             $this->position = (null !== $col) ? (int) $col : null;
 
-            $col = $row[TableMap::TYPE_NUM == $indexType ? 3 + $startcol : CarouselTableMap::translateFieldName('Alt', TableMap::TYPE_PHPNAME, $indexType)];
-            $this->alt = (null !== $col) ? (string) $col : null;
+            $col = $row[TableMap::TYPE_NUM == $indexType ? 3 + $startcol : CarouselTableMap::translateFieldName('Url', TableMap::TYPE_PHPNAME, $indexType)];
+            $this->url = (null !== $col) ? (string) $col : null;
 
             $col = $row[TableMap::TYPE_NUM == $indexType ? 4 + $startcol : CarouselTableMap::translateFieldName('CreatedAt', TableMap::TYPE_PHPNAME, $indexType)];
             if ($col === '0000-00-00 00:00:00') {
@@ -694,6 +723,8 @@ abstract class Carousel implements ActiveRecordInterface
         $this->hydrate($row, 0, true, $dataFetcher->getIndexType()); // rehydrate
 
         if ($deep) {  // also de-associate any related objects?
+
+            $this->collCarouselI18ns = null;
 
         } // if (deep)
     }
@@ -828,6 +859,23 @@ abstract class Carousel implements ActiveRecordInterface
                 $this->resetModified();
             }
 
+            if ($this->carouselI18nsScheduledForDeletion !== null) {
+                if (!$this->carouselI18nsScheduledForDeletion->isEmpty()) {
+                    \Carousel\Model\CarouselI18nQuery::create()
+                        ->filterByPrimaryKeys($this->carouselI18nsScheduledForDeletion->getPrimaryKeys(false))
+                        ->delete($con);
+                    $this->carouselI18nsScheduledForDeletion = null;
+                }
+            }
+
+                if ($this->collCarouselI18ns !== null) {
+            foreach ($this->collCarouselI18ns as $referrerFK) {
+                    if (!$referrerFK->isDeleted() && ($referrerFK->isNew() || $referrerFK->isModified())) {
+                        $affectedRows += $referrerFK->save($con);
+                    }
+                }
+            }
+
             $this->alreadyInSave = false;
 
         }
@@ -863,8 +911,8 @@ abstract class Carousel implements ActiveRecordInterface
         if ($this->isColumnModified(CarouselTableMap::POSITION)) {
             $modifiedColumns[':p' . $index++]  = 'POSITION';
         }
-        if ($this->isColumnModified(CarouselTableMap::ALT)) {
-            $modifiedColumns[':p' . $index++]  = 'ALT';
+        if ($this->isColumnModified(CarouselTableMap::URL)) {
+            $modifiedColumns[':p' . $index++]  = 'URL';
         }
         if ($this->isColumnModified(CarouselTableMap::CREATED_AT)) {
             $modifiedColumns[':p' . $index++]  = 'CREATED_AT';
@@ -892,8 +940,8 @@ abstract class Carousel implements ActiveRecordInterface
                     case 'POSITION':
                         $stmt->bindValue($identifier, $this->position, PDO::PARAM_INT);
                         break;
-                    case 'ALT':
-                        $stmt->bindValue($identifier, $this->alt, PDO::PARAM_STR);
+                    case 'URL':
+                        $stmt->bindValue($identifier, $this->url, PDO::PARAM_STR);
                         break;
                     case 'CREATED_AT':
                         $stmt->bindValue($identifier, $this->created_at ? $this->created_at->format("Y-m-d H:i:s") : null, PDO::PARAM_STR);
@@ -973,7 +1021,7 @@ abstract class Carousel implements ActiveRecordInterface
                 return $this->getPosition();
                 break;
             case 3:
-                return $this->getAlt();
+                return $this->getUrl();
                 break;
             case 4:
                 return $this->getCreatedAt();
@@ -998,10 +1046,11 @@ abstract class Carousel implements ActiveRecordInterface
      *                    Defaults to TableMap::TYPE_PHPNAME.
      * @param     boolean $includeLazyLoadColumns (optional) Whether to include lazy loaded columns. Defaults to TRUE.
      * @param     array $alreadyDumpedObjects List of objects to skip to avoid recursion
+     * @param     boolean $includeForeignObjects (optional) Whether to include hydrated related objects. Default to FALSE.
      *
      * @return array an associative array containing the field names (as keys) and field values
      */
-    public function toArray($keyType = TableMap::TYPE_PHPNAME, $includeLazyLoadColumns = true, $alreadyDumpedObjects = array())
+    public function toArray($keyType = TableMap::TYPE_PHPNAME, $includeLazyLoadColumns = true, $alreadyDumpedObjects = array(), $includeForeignObjects = false)
     {
         if (isset($alreadyDumpedObjects['Carousel'][$this->getPrimaryKey()])) {
             return '*RECURSION*';
@@ -1012,7 +1061,7 @@ abstract class Carousel implements ActiveRecordInterface
             $keys[0] => $this->getId(),
             $keys[1] => $this->getFile(),
             $keys[2] => $this->getPosition(),
-            $keys[3] => $this->getAlt(),
+            $keys[3] => $this->getUrl(),
             $keys[4] => $this->getCreatedAt(),
             $keys[5] => $this->getUpdatedAt(),
         );
@@ -1021,6 +1070,11 @@ abstract class Carousel implements ActiveRecordInterface
             $result[$key] = $virtualColumn;
         }
 
+        if ($includeForeignObjects) {
+            if (null !== $this->collCarouselI18ns) {
+                $result['CarouselI18ns'] = $this->collCarouselI18ns->toArray(null, true, $keyType, $includeLazyLoadColumns, $alreadyDumpedObjects);
+            }
+        }
 
         return $result;
     }
@@ -1064,7 +1118,7 @@ abstract class Carousel implements ActiveRecordInterface
                 $this->setPosition($value);
                 break;
             case 3:
-                $this->setAlt($value);
+                $this->setUrl($value);
                 break;
             case 4:
                 $this->setCreatedAt($value);
@@ -1099,7 +1153,7 @@ abstract class Carousel implements ActiveRecordInterface
         if (array_key_exists($keys[0], $arr)) $this->setId($arr[$keys[0]]);
         if (array_key_exists($keys[1], $arr)) $this->setFile($arr[$keys[1]]);
         if (array_key_exists($keys[2], $arr)) $this->setPosition($arr[$keys[2]]);
-        if (array_key_exists($keys[3], $arr)) $this->setAlt($arr[$keys[3]]);
+        if (array_key_exists($keys[3], $arr)) $this->setUrl($arr[$keys[3]]);
         if (array_key_exists($keys[4], $arr)) $this->setCreatedAt($arr[$keys[4]]);
         if (array_key_exists($keys[5], $arr)) $this->setUpdatedAt($arr[$keys[5]]);
     }
@@ -1116,7 +1170,7 @@ abstract class Carousel implements ActiveRecordInterface
         if ($this->isColumnModified(CarouselTableMap::ID)) $criteria->add(CarouselTableMap::ID, $this->id);
         if ($this->isColumnModified(CarouselTableMap::FILE)) $criteria->add(CarouselTableMap::FILE, $this->file);
         if ($this->isColumnModified(CarouselTableMap::POSITION)) $criteria->add(CarouselTableMap::POSITION, $this->position);
-        if ($this->isColumnModified(CarouselTableMap::ALT)) $criteria->add(CarouselTableMap::ALT, $this->alt);
+        if ($this->isColumnModified(CarouselTableMap::URL)) $criteria->add(CarouselTableMap::URL, $this->url);
         if ($this->isColumnModified(CarouselTableMap::CREATED_AT)) $criteria->add(CarouselTableMap::CREATED_AT, $this->created_at);
         if ($this->isColumnModified(CarouselTableMap::UPDATED_AT)) $criteria->add(CarouselTableMap::UPDATED_AT, $this->updated_at);
 
@@ -1184,9 +1238,23 @@ abstract class Carousel implements ActiveRecordInterface
     {
         $copyObj->setFile($this->getFile());
         $copyObj->setPosition($this->getPosition());
-        $copyObj->setAlt($this->getAlt());
+        $copyObj->setUrl($this->getUrl());
         $copyObj->setCreatedAt($this->getCreatedAt());
         $copyObj->setUpdatedAt($this->getUpdatedAt());
+
+        if ($deepCopy) {
+            // important: temporarily setNew(false) because this affects the behavior of
+            // the getter/setter methods for fkey referrer objects.
+            $copyObj->setNew(false);
+
+            foreach ($this->getCarouselI18ns() as $relObj) {
+                if ($relObj !== $this) {  // ensure that we don't try to copy a reference to ourselves
+                    $copyObj->addCarouselI18n($relObj->copy($deepCopy));
+                }
+            }
+
+        } // if ($deepCopy)
+
         if ($makeNew) {
             $copyObj->setNew(true);
             $copyObj->setId(NULL); // this is a auto-increment column, so set to default value
@@ -1215,6 +1283,247 @@ abstract class Carousel implements ActiveRecordInterface
         return $copyObj;
     }
 
+
+    /**
+     * Initializes a collection based on the name of a relation.
+     * Avoids crafting an 'init[$relationName]s' method name
+     * that wouldn't work when StandardEnglishPluralizer is used.
+     *
+     * @param      string $relationName The name of the relation to initialize
+     * @return void
+     */
+    public function initRelation($relationName)
+    {
+        if ('CarouselI18n' == $relationName) {
+            return $this->initCarouselI18ns();
+        }
+    }
+
+    /**
+     * Clears out the collCarouselI18ns collection
+     *
+     * This does not modify the database; however, it will remove any associated objects, causing
+     * them to be refetched by subsequent calls to accessor method.
+     *
+     * @return void
+     * @see        addCarouselI18ns()
+     */
+    public function clearCarouselI18ns()
+    {
+        $this->collCarouselI18ns = null; // important to set this to NULL since that means it is uninitialized
+    }
+
+    /**
+     * Reset is the collCarouselI18ns collection loaded partially.
+     */
+    public function resetPartialCarouselI18ns($v = true)
+    {
+        $this->collCarouselI18nsPartial = $v;
+    }
+
+    /**
+     * Initializes the collCarouselI18ns collection.
+     *
+     * By default this just sets the collCarouselI18ns collection to an empty array (like clearcollCarouselI18ns());
+     * however, you may wish to override this method in your stub class to provide setting appropriate
+     * to your application -- for example, setting the initial array to the values stored in database.
+     *
+     * @param      boolean $overrideExisting If set to true, the method call initializes
+     *                                        the collection even if it is not empty
+     *
+     * @return void
+     */
+    public function initCarouselI18ns($overrideExisting = true)
+    {
+        if (null !== $this->collCarouselI18ns && !$overrideExisting) {
+            return;
+        }
+        $this->collCarouselI18ns = new ObjectCollection();
+        $this->collCarouselI18ns->setModel('\Carousel\Model\CarouselI18n');
+    }
+
+    /**
+     * Gets an array of ChildCarouselI18n objects which contain a foreign key that references this object.
+     *
+     * If the $criteria is not null, it is used to always fetch the results from the database.
+     * Otherwise the results are fetched from the database the first time, then cached.
+     * Next time the same method is called without $criteria, the cached collection is returned.
+     * If this ChildCarousel is new, it will return
+     * an empty collection or the current collection; the criteria is ignored on a new object.
+     *
+     * @param      Criteria $criteria optional Criteria object to narrow the query
+     * @param      ConnectionInterface $con optional connection object
+     * @return Collection|ChildCarouselI18n[] List of ChildCarouselI18n objects
+     * @throws PropelException
+     */
+    public function getCarouselI18ns($criteria = null, ConnectionInterface $con = null)
+    {
+        $partial = $this->collCarouselI18nsPartial && !$this->isNew();
+        if (null === $this->collCarouselI18ns || null !== $criteria  || $partial) {
+            if ($this->isNew() && null === $this->collCarouselI18ns) {
+                // return empty collection
+                $this->initCarouselI18ns();
+            } else {
+                $collCarouselI18ns = ChildCarouselI18nQuery::create(null, $criteria)
+                    ->filterByCarousel($this)
+                    ->find($con);
+
+                if (null !== $criteria) {
+                    if (false !== $this->collCarouselI18nsPartial && count($collCarouselI18ns)) {
+                        $this->initCarouselI18ns(false);
+
+                        foreach ($collCarouselI18ns as $obj) {
+                            if (false == $this->collCarouselI18ns->contains($obj)) {
+                                $this->collCarouselI18ns->append($obj);
+                            }
+                        }
+
+                        $this->collCarouselI18nsPartial = true;
+                    }
+
+                    reset($collCarouselI18ns);
+
+                    return $collCarouselI18ns;
+                }
+
+                if ($partial && $this->collCarouselI18ns) {
+                    foreach ($this->collCarouselI18ns as $obj) {
+                        if ($obj->isNew()) {
+                            $collCarouselI18ns[] = $obj;
+                        }
+                    }
+                }
+
+                $this->collCarouselI18ns = $collCarouselI18ns;
+                $this->collCarouselI18nsPartial = false;
+            }
+        }
+
+        return $this->collCarouselI18ns;
+    }
+
+    /**
+     * Sets a collection of CarouselI18n objects related by a one-to-many relationship
+     * to the current object.
+     * It will also schedule objects for deletion based on a diff between old objects (aka persisted)
+     * and new objects from the given Propel collection.
+     *
+     * @param      Collection $carouselI18ns A Propel collection.
+     * @param      ConnectionInterface $con Optional connection object
+     * @return   ChildCarousel The current object (for fluent API support)
+     */
+    public function setCarouselI18ns(Collection $carouselI18ns, ConnectionInterface $con = null)
+    {
+        $carouselI18nsToDelete = $this->getCarouselI18ns(new Criteria(), $con)->diff($carouselI18ns);
+
+
+        //since at least one column in the foreign key is at the same time a PK
+        //we can not just set a PK to NULL in the lines below. We have to store
+        //a backup of all values, so we are able to manipulate these items based on the onDelete value later.
+        $this->carouselI18nsScheduledForDeletion = clone $carouselI18nsToDelete;
+
+        foreach ($carouselI18nsToDelete as $carouselI18nRemoved) {
+            $carouselI18nRemoved->setCarousel(null);
+        }
+
+        $this->collCarouselI18ns = null;
+        foreach ($carouselI18ns as $carouselI18n) {
+            $this->addCarouselI18n($carouselI18n);
+        }
+
+        $this->collCarouselI18ns = $carouselI18ns;
+        $this->collCarouselI18nsPartial = false;
+
+        return $this;
+    }
+
+    /**
+     * Returns the number of related CarouselI18n objects.
+     *
+     * @param      Criteria $criteria
+     * @param      boolean $distinct
+     * @param      ConnectionInterface $con
+     * @return int             Count of related CarouselI18n objects.
+     * @throws PropelException
+     */
+    public function countCarouselI18ns(Criteria $criteria = null, $distinct = false, ConnectionInterface $con = null)
+    {
+        $partial = $this->collCarouselI18nsPartial && !$this->isNew();
+        if (null === $this->collCarouselI18ns || null !== $criteria || $partial) {
+            if ($this->isNew() && null === $this->collCarouselI18ns) {
+                return 0;
+            }
+
+            if ($partial && !$criteria) {
+                return count($this->getCarouselI18ns());
+            }
+
+            $query = ChildCarouselI18nQuery::create(null, $criteria);
+            if ($distinct) {
+                $query->distinct();
+            }
+
+            return $query
+                ->filterByCarousel($this)
+                ->count($con);
+        }
+
+        return count($this->collCarouselI18ns);
+    }
+
+    /**
+     * Method called to associate a ChildCarouselI18n object to this object
+     * through the ChildCarouselI18n foreign key attribute.
+     *
+     * @param    ChildCarouselI18n $l ChildCarouselI18n
+     * @return   \Carousel\Model\Carousel The current object (for fluent API support)
+     */
+    public function addCarouselI18n(ChildCarouselI18n $l)
+    {
+        if ($l && $locale = $l->getLocale()) {
+            $this->setLocale($locale);
+            $this->currentTranslations[$locale] = $l;
+        }
+        if ($this->collCarouselI18ns === null) {
+            $this->initCarouselI18ns();
+            $this->collCarouselI18nsPartial = true;
+        }
+
+        if (!in_array($l, $this->collCarouselI18ns->getArrayCopy(), true)) { // only add it if the **same** object is not already associated
+            $this->doAddCarouselI18n($l);
+        }
+
+        return $this;
+    }
+
+    /**
+     * @param CarouselI18n $carouselI18n The carouselI18n object to add.
+     */
+    protected function doAddCarouselI18n($carouselI18n)
+    {
+        $this->collCarouselI18ns[]= $carouselI18n;
+        $carouselI18n->setCarousel($this);
+    }
+
+    /**
+     * @param  CarouselI18n $carouselI18n The carouselI18n object to remove.
+     * @return ChildCarousel The current object (for fluent API support)
+     */
+    public function removeCarouselI18n($carouselI18n)
+    {
+        if ($this->getCarouselI18ns()->contains($carouselI18n)) {
+            $this->collCarouselI18ns->remove($this->collCarouselI18ns->search($carouselI18n));
+            if (null === $this->carouselI18nsScheduledForDeletion) {
+                $this->carouselI18nsScheduledForDeletion = clone $this->collCarouselI18ns;
+                $this->carouselI18nsScheduledForDeletion->clear();
+            }
+            $this->carouselI18nsScheduledForDeletion[]= clone $carouselI18n;
+            $carouselI18n->setCarousel(null);
+        }
+
+        return $this;
+    }
+
     /**
      * Clears the current object and sets all attributes to their default values
      */
@@ -1223,7 +1532,7 @@ abstract class Carousel implements ActiveRecordInterface
         $this->id = null;
         $this->file = null;
         $this->position = null;
-        $this->alt = null;
+        $this->url = null;
         $this->created_at = null;
         $this->updated_at = null;
         $this->alreadyInSave = false;
@@ -1245,8 +1554,18 @@ abstract class Carousel implements ActiveRecordInterface
     public function clearAllReferences($deep = false)
     {
         if ($deep) {
+            if ($this->collCarouselI18ns) {
+                foreach ($this->collCarouselI18ns as $o) {
+                    $o->clearAllReferences($deep);
+                }
+            }
         } // if ($deep)
 
+        // i18n behavior
+        $this->currentLocale = 'en_US';
+        $this->currentTranslations = null;
+
+        $this->collCarouselI18ns = null;
     }
 
     /**
@@ -1269,6 +1588,225 @@ abstract class Carousel implements ActiveRecordInterface
     public function keepUpdateDateUnchanged()
     {
         $this->modifiedColumns[CarouselTableMap::UPDATED_AT] = true;
+
+        return $this;
+    }
+
+    // i18n behavior
+
+    /**
+     * Sets the locale for translations
+     *
+     * @param     string $locale Locale to use for the translation, e.g. 'fr_FR'
+     *
+     * @return    ChildCarousel The current object (for fluent API support)
+     */
+    public function setLocale($locale = 'en_US')
+    {
+        $this->currentLocale = $locale;
+
+        return $this;
+    }
+
+    /**
+     * Gets the locale for translations
+     *
+     * @return    string $locale Locale to use for the translation, e.g. 'fr_FR'
+     */
+    public function getLocale()
+    {
+        return $this->currentLocale;
+    }
+
+    /**
+     * Returns the current translation for a given locale
+     *
+     * @param     string $locale Locale to use for the translation, e.g. 'fr_FR'
+     * @param     ConnectionInterface $con an optional connection object
+     *
+     * @return ChildCarouselI18n */
+    public function getTranslation($locale = 'en_US', ConnectionInterface $con = null)
+    {
+        if (!isset($this->currentTranslations[$locale])) {
+            if (null !== $this->collCarouselI18ns) {
+                foreach ($this->collCarouselI18ns as $translation) {
+                    if ($translation->getLocale() == $locale) {
+                        $this->currentTranslations[$locale] = $translation;
+
+                        return $translation;
+                    }
+                }
+            }
+            if ($this->isNew()) {
+                $translation = new ChildCarouselI18n();
+                $translation->setLocale($locale);
+            } else {
+                $translation = ChildCarouselI18nQuery::create()
+                    ->filterByPrimaryKey(array($this->getPrimaryKey(), $locale))
+                    ->findOneOrCreate($con);
+                $this->currentTranslations[$locale] = $translation;
+            }
+            $this->addCarouselI18n($translation);
+        }
+
+        return $this->currentTranslations[$locale];
+    }
+
+    /**
+     * Remove the translation for a given locale
+     *
+     * @param     string $locale Locale to use for the translation, e.g. 'fr_FR'
+     * @param     ConnectionInterface $con an optional connection object
+     *
+     * @return    ChildCarousel The current object (for fluent API support)
+     */
+    public function removeTranslation($locale = 'en_US', ConnectionInterface $con = null)
+    {
+        if (!$this->isNew()) {
+            ChildCarouselI18nQuery::create()
+                ->filterByPrimaryKey(array($this->getPrimaryKey(), $locale))
+                ->delete($con);
+        }
+        if (isset($this->currentTranslations[$locale])) {
+            unset($this->currentTranslations[$locale]);
+        }
+        foreach ($this->collCarouselI18ns as $key => $translation) {
+            if ($translation->getLocale() == $locale) {
+                unset($this->collCarouselI18ns[$key]);
+                break;
+            }
+        }
+
+        return $this;
+    }
+
+    /**
+     * Returns the current translation
+     *
+     * @param     ConnectionInterface $con an optional connection object
+     *
+     * @return ChildCarouselI18n */
+    public function getCurrentTranslation(ConnectionInterface $con = null)
+    {
+        return $this->getTranslation($this->getLocale(), $con);
+    }
+
+
+        /**
+         * Get the [alt] column value.
+         *
+         * @return   string
+         */
+        public function getAlt()
+        {
+        return $this->getCurrentTranslation()->getAlt();
+    }
+
+
+        /**
+         * Set the value of [alt] column.
+         *
+         * @param      string $v new value
+         * @return   \Carousel\Model\CarouselI18n The current object (for fluent API support)
+         */
+        public function setAlt($v)
+        {    $this->getCurrentTranslation()->setAlt($v);
+
+        return $this;
+    }
+
+
+        /**
+         * Get the [title] column value.
+         *
+         * @return   string
+         */
+        public function getTitle()
+        {
+        return $this->getCurrentTranslation()->getTitle();
+    }
+
+
+        /**
+         * Set the value of [title] column.
+         *
+         * @param      string $v new value
+         * @return   \Carousel\Model\CarouselI18n The current object (for fluent API support)
+         */
+        public function setTitle($v)
+        {    $this->getCurrentTranslation()->setTitle($v);
+
+        return $this;
+    }
+
+
+        /**
+         * Get the [description] column value.
+         *
+         * @return   string
+         */
+        public function getDescription()
+        {
+        return $this->getCurrentTranslation()->getDescription();
+    }
+
+
+        /**
+         * Set the value of [description] column.
+         *
+         * @param      string $v new value
+         * @return   \Carousel\Model\CarouselI18n The current object (for fluent API support)
+         */
+        public function setDescription($v)
+        {    $this->getCurrentTranslation()->setDescription($v);
+
+        return $this;
+    }
+
+
+        /**
+         * Get the [chapo] column value.
+         *
+         * @return   string
+         */
+        public function getChapo()
+        {
+        return $this->getCurrentTranslation()->getChapo();
+    }
+
+
+        /**
+         * Set the value of [chapo] column.
+         *
+         * @param      string $v new value
+         * @return   \Carousel\Model\CarouselI18n The current object (for fluent API support)
+         */
+        public function setChapo($v)
+        {    $this->getCurrentTranslation()->setChapo($v);
+
+        return $this;
+    }
+
+
+        /**
+         * Get the [postscriptum] column value.
+         *
+         * @return   string
+         */
+        public function getPostscriptum()
+        {
+        return $this->getCurrentTranslation()->getPostscriptum();
+    }
+
+
+        /**
+         * Set the value of [postscriptum] column.
+         *
+         * @param      string $v new value
+         * @return   \Carousel\Model\CarouselI18n The current object (for fluent API support)
+         */
+        public function setPostscriptum($v)
+        {    $this->getCurrentTranslation()->setPostscriptum($v);
 
         return $this;
     }

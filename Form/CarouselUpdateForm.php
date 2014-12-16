@@ -11,11 +11,10 @@
 /*************************************************************************************/
 
 namespace Carousel\Form;
+
 use Carousel\Carousel;
 use Carousel\Model\CarouselQuery;
-use Thelia\Core\Translation\Translator;
 use Thelia\Form\BaseForm;
-
 
 /**
  * Class CarouselUpdateForm
@@ -24,57 +23,141 @@ use Thelia\Form\BaseForm;
  */
 class CarouselUpdateForm extends BaseForm
 {
-
     /**
-     *
-     * in this function you add all the fields you need for your Form.
-     * Form this you have to call add method on $this->formBuilder attribute :
-     *
-     * $this->formBuilder->add("name", "text")
-     *   ->add("email", "email", array(
-     *           "attr" => array(
-     *               "class" => "field"
-     *           ),
-     *           "label" => "email",
-     *           "constraints" => array(
-     *               new \Symfony\Component\Validator\Constraints\NotBlank()
-     *           )
-     *       )
-     *   )
-     *   ->add('age', 'integer');
-     *
-     * @return null
+     * @inheritdoc
      */
     protected function buildForm()
     {
         $formBuilder = $this->formBuilder;
 
-        $carousels = CarouselQuery::create()
-            ->orderByPosition()
-            ->find();
+        $carousels = CarouselQuery::create()->orderByPosition()->find();
 
-        $translator = Translator::getInstance();
-
-        $label = $translator->trans('alt text', [], Carousel::DOMAIN_NAME);
-
+        /** @var \Carousel\Model\Carousel $carousel */
         foreach ($carousels as $carousel) {
+            $id = $carousel->getId();
+
             $formBuilder->add(
-                'alt'.$carousel->getId(),
+                'position' . $id,
                 'text',
                 [
-                    'label' => $label,
+                    'label' => $this->translator->trans('Image position in carousel', [], Carousel::DOMAIN_NAME),
                     'label_attr' => [
-                        'for' => 'carousel_update'.$carousel->getId()
+                        'for' => 'position' . $id
                     ],
                     'required' => false,
-                    'data' => $carousel->getAlt()
+                    'attr' => [
+                        'placeholder' => $this->translator->trans(
+                            'Image position in carousel',
+                            [],
+                            Carousel::DOMAIN_NAME
+                        )
+                    ]
+                ]
+            )->add(
+                'alt' . $id,
+                'text',
+                [
+                    'label' => $this->translator->trans('Alternative image text', [], Carousel::DOMAIN_NAME),
+                    'label_attr' => [
+                        'for' => 'alt' . $id
+                    ],
+                    'required' => false,
+                    'attr' => [
+                        'placeholder' => $this->translator->trans(
+                            'Displayed when image is not visible',
+                            [],
+                            Carousel::DOMAIN_NAME
+                        )
+                    ]
+                ]
+            )->add(
+                'url' . $id,
+                'url',
+                [
+                    'label' => $this->translator->trans('Image URL', [], Carousel::DOMAIN_NAME),
+                    'label_attr' => [
+                        'for' => 'url' . $id
+                    ],
+                    'required' => false,
+                    'attr' => [
+                        'placeholder' => $this->translator->trans(
+                            'Please enter a valid URL',
+                            [],
+                            Carousel::DOMAIN_NAME
+                        )
+                    ]
+                ]
+            )->add(
+                'title' . $id,
+                'text',
+                [
+                    'constraints' => [],
+                    'required' => false,
+                    'label' => $this->translator->trans('Title'),
+                    'label_attr' => [
+                        'for' => 'title_field' . $id
+                    ],
+                    'attr' => [
+                        'placeholder' => $this->translator->trans('A descriptive title')
+                    ]
+                ]
+            )->add(
+                'chapo' . $id,
+                'textarea',
+                [
+                    'constraints' => [],
+                    'required' => false,
+                    'label' => $this->translator->trans('Summary'),
+                    'label_attr' => [
+                        'for' => 'summary_field' . $id,
+                        'help' => $this->translator->trans(
+                            'A short description, used when a summary or an introduction is required'
+                        )
+                    ],
+                    'attr' => [
+                        'rows' => 3,
+                        'placeholder' => $this->translator->trans('Short description text')
+                    ]
+                ]
+            )->add(
+                'description' . $id,
+                'textarea',
+                [
+                    'constraints' => [],
+                    'required' => false,
+                    'label' => $this->translator->trans('Detailed description'),
+                    'label_attr' => [
+                        'for' => 'detailed_description_field' . $id,
+                        'help' => $this->translator->trans('The detailed description.')
+                    ],
+                    'attr' => [
+                        'rows' => 5
+                    ]
+                ]
+            )->add(
+                'postscriptum' . $id,
+                'textarea',
+                [
+                    'constraints' => [],
+                    'required' => false,
+                    'label' => $this->translator->trans('Conclusion'),
+                    'label_attr' => [
+                        'for' => 'conclusion_field' . $id,
+                        'help' => $this->translator->trans(
+                            'A short text, used when an additional or supplemental information is required.'
+                        )
+                    ],
+                    'attr' => [
+                        'placeholder' => $this->translator->trans('Short additional text'),
+                        'rows' => 3,
+                    ]
                 ]
             );
         }
     }
 
     /**
-     * @return string the name of you form. This name must be unique
+     * @inheritdoc
      */
     public function getName()
     {
