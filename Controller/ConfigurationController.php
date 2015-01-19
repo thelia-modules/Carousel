@@ -24,6 +24,8 @@ use Thelia\Core\Event\TheliaEvents;
 use Thelia\Core\Security\AccessManager;
 use Thelia\Core\Security\Resource\AdminResources;
 use Thelia\Form\Exception\FormValidationException;
+use Thelia\Model\Lang;
+use Thelia\Model\LangQuery;
 use Thelia\Tools\URL;
 
 /**
@@ -59,6 +61,14 @@ class ConfigurationController extends BaseAdminController
                 TheliaEvents::IMAGE_SAVE,
                 $fileCreateOrUpdateEvent
             );
+
+            // Compensate issue #1005
+            $langs = LangQuery::create()->find();
+
+            /** @var Lang $lang */
+            foreach ($langs as $lang) {
+                $fileCreateOrUpdateEvent->getModel()->setLocale($lang->getLocale())->setTitle('')->save();
+            }
 
             $response =  $this->redirectToConfigurationPage();
 

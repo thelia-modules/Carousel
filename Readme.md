@@ -2,10 +2,6 @@
 
 This module for Thelia add a customizable carousel on your home page. You can upload you own image and overload the default template in your template for using the carousel.
 
-# /!\ WARNING
-
-this module is in development and can only be used with the current master branch of Thelia. This module is not compatible with Thelia 2.0.*
-
 ## Installation
 
 * Copy the module into ```<thelia_root>/local/modules/``` directory and be sure that the name of the module is Carousel.
@@ -13,11 +9,15 @@ this module is in development and can only be used with the current master branc
 
 ## Usage
 
-In the configuration panel of this module, you can upload how many images you want.
+In the configuration panel of this module, you can upload as many images as you want.
+
+## Hook
+
+The carousel is installed in the "Home page - main area" (home.body) hook.
 
 ## Loop
 
-The carousel's loop allows you to customize each images like the image's loop. You can set a width, a height, etc
+Customize images with the `carousel` loop, which has the same arguments as the `image` loop. You can define a width, a height, and many other parameters
 
 ### Input arguments
 
