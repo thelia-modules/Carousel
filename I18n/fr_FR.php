@@ -11,7 +11,7 @@ return array(
     'Displayed when image is not visible' => 'Affiché lorsque l\'image n\'est pas visible',
     'Image URL' => 'URL de l\'image',
     'Image position in carousel' => 'Position de l\'image dans le carrousel',
-    'Please enter a valid URL' => 'Merci d\'ndiquer une URL valide',
+    'Please enter a valid URL' => 'Merci d\'indiquer une URL valide',
     'Short additional text' => 'Un texte court de conclusion',
     'Short description text' => 'Un texte court d\'introduction',
     'Summary' => 'Résumé',
