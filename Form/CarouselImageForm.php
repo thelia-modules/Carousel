@@ -13,6 +13,7 @@
 namespace Carousel\Form;
 
 use Carousel\Carousel;
+use Symfony\Component\Form\Extension\Core\Type\FileType;
 use Symfony\Component\Validator\Constraints\Image;
 use Thelia\Core\Translation\Translator;
 use Thelia\Form\BaseForm;
@@ -33,7 +34,7 @@ class CarouselImageForm extends BaseForm
         $this->formBuilder
             ->add(
                 'file',
-                'file',
+                FileType::class,
                 [
                     'constraints' => [
                         new Image()
