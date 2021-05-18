@@ -12,6 +12,7 @@
 
 namespace Carousel\Controller;
 
+use Carousel\Event\CarouselImageUpdateEvent;
 use Carousel\Model\Carousel;
 use Carousel\Model\CarouselQuery;
 use Symfony\Component\Form\Form;
@@ -121,6 +122,9 @@ class ConfigurationController extends BaseAdminController
             $carousels = CarouselQuery::create()->findAllByPosition();
 
             $locale = $this->getCurrentEditionLocale();
+
+            $carouselImageUpdateEvent = new CarouselImageUpdateEvent($updateForm);
+            $this->getDispatcher()->dispatch(CarouselImageUpdateEvent::CAROUSEL_IMAGE_UPDATE, $carouselImageUpdateEvent);
 
             /** @var Carousel $carousel */
             foreach ($carousels as $carousel) {

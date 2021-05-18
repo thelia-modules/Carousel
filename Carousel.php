@@ -16,6 +16,7 @@ use Propel\Runtime\Connection\ConnectionInterface;
 use Symfony\Component\Filesystem\Filesystem;
 use Symfony\Component\Finder\Finder;
 use Symfony\Component\Finder\SplFileInfo;
+use Thelia\Core\Template\TemplateDefinition;
 use Thelia\Install\Database;
 use Thelia\Model\ConfigQuery;
 use Thelia\Module\BaseModule;
@@ -105,5 +106,17 @@ class Carousel extends BaseModule
                 $database->insertSql(null, [$updateSQLFile->getPathname()]);
             }
         }
+    }
+
+    public function getHooks()
+    {
+        return array(
+            array(
+                "type" => TemplateDefinition::BACK_OFFICE,
+                "code" => "carousel.additional.field",
+                "title" => "Carousel Additional field",
+                "description" => "Hook to add filters to images configuration form",
+            )
+        );
     }
 }
