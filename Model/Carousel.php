@@ -20,9 +20,11 @@ use Symfony\Component\Filesystem\Filesystem;
 use Thelia\Files\FileModelInterface;
 use Thelia\Files\FileModelParentInterface;
 use Thelia\Form\BaseForm;
+use Thelia\Model\Tools\PositionManagementTrait;
 
 class Carousel extends BaseCarousel implements FileModelInterface
 {
+    use PositionManagementTrait;
     public function preDelete(ConnectionInterface $con = null)
     {
         $carousel = new \Carousel\Carousel();

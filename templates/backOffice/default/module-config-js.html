@@ -1,0 +1,54 @@
+{javascripts file='assets/js/bootstrap-editable/bootstrap-editable.js'}
+<script src="{$asset_url}"></script>
+{/javascripts}
+
+<script>
+    $('.js_editable_carousel_position').editable({
+        type        : 'text',
+        title       : '{intl l="Enter new rule position"}',
+        mode        : 'popup',
+        inputclass  : 'input-mini',
+        placement   : 'left',
+        url         : function(params){
+            let carouselId = this.dataset.id;
+            let newPosition = params.value;
+            movePosition(carouselId,'absolute',newPosition)
+        }
+    });
+
+    $(".u-position-up").on("click", function (e) {
+        e.preventDefault();
+        console.log(this.dataset)
+        movePosition(this.dataset.id, "up");
+    });
+
+    $(".u-position-down").on("click", function (e) {
+        e.preventDefault();
+        movePosition(this.dataset.id, "down");
+    });
+
+    function movePosition(id, type, position){
+        var dataToSend =
+            {
+                id : id,
+                type : type
+            };
+
+        if (type === "absolute") {
+            dataToSend.position = position;
+        }
+
+        $.ajax({
+            url      : '{url path="/admin/carousel/update-position"}',
+            data     : dataToSend,
+            type     : 'post',
+            success  : function(){
+                window.location.reload(true);
+            },
+            error : function(jqXHR, textStatus, errorThrown) {
+                alert(jqXHR.responseText)
+            }
+        });
+    }
+
+</script>

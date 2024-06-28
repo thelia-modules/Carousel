@@ -25,8 +25,10 @@ use Thelia\Core\Event\File\FileCreateOrUpdateEvent;
 use Thelia\Core\Event\TheliaEvents;
 use Thelia\Core\Form\TheliaFormFactory;
 use Thelia\Core\HttpFoundation\Request;
+use Thelia\Core\HttpFoundation\Response;
 use Thelia\Core\Security\AccessManager;
 use Thelia\Core\Security\Resource\AdminResources;
+use Thelia\Core\Translation\Translator;
 use Thelia\Form\Exception\FormValidationException;
 use Thelia\Model\Lang;
 use Thelia\Model\LangQuery;
@@ -57,7 +59,9 @@ class ConfigurationController extends BaseAdminController
             $fileBeingUploaded = $formData['file'];
 
             $fileModel = new Carousel();
-
+            if ($fileModel->getPosition() === null) {
+                $fileModel->setPosition($fileModel->getNextPosition());
+            }
             $fileCreateOrUpdateEvent = new FileCreateOrUpdateEvent(1);
             $fileCreateOrUpdateEvent->setModel($fileModel);
             $fileCreateOrUpdateEvent->setUploadedFile($fileBeingUploaded);
@@ -135,7 +139,6 @@ class ConfigurationController extends BaseAdminController
                 $id = $carousel->getId();
 
                 $carousel
-                    ->setPosition($this->getFormFieldValue($updateForm, 'position', $id))
                     ->setDisable($this->getFormFieldValue($updateForm, 'disable', $id))
                     ->setUrl($this->getFormFieldValue($updateForm, 'url', $id))
                     ->setLocale($locale)
@@ -192,5 +195,40 @@ class ConfigurationController extends BaseAdminController
     protected function redirectToConfigurationPage()
     {
         return new RedirectResponse(URL::getInstance()->absoluteUrl('/admin/module/Carousel'));
+    }
+
+    /**
+     * @throws \JsonException
+     */
+    public function movePositionAction(Request $request): Response
+    {
+        try {
+            $carousel = CarouselQuery::create()->findOneById($request->get('id'));
+
+            if ($carousel === null) {
+                throw new \RuntimeException(Translator::getInstance()->trans(
+                    'Unable to find carousel to change position.',
+                    [],
+                    \Carousel\Carousel::DOMAIN_NAME
+                ));
+            }
+
+            $type = $request->get('type', null);
+
+            if ($type === 'up') {
+                $carousel->movePositionUp();
+            } elseif ($type === 'down') {
+                $carousel->movePositionDown();
+            } elseif ($type === 'absolute') {
+                $position = $request->get('position', null);
+                if (!empty($position)) {
+                    $carousel->changeAbsolutePosition($position);
+                }
+            }
+        } catch (\Exception $ex) {
+            return $this->jsonResponse($ex->getMessage(), 500);
+        }
+
+        return $this->jsonResponse(json_encode(['state' => 'Success'], JSON_THROW_ON_ERROR), 200);
     }
 }

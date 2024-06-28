@@ -14,6 +14,7 @@ namespace Carousel\Hook;
 
 use Carousel\Carousel;
 use Thelia\Core\Event\Hook\HookRenderBlockEvent;
+use Thelia\Core\Event\Hook\HookRenderEvent;
 use Thelia\Core\Hook\BaseHook;
 use Thelia\Tools\URL;
 
@@ -38,6 +39,13 @@ class BackHook extends BaseHook
                 'url' => URL::getInstance()->absoluteUrl('/admin/module/Carousel'),
                 'title' => $this->trans('Edit your carousel', [], Carousel::DOMAIN_NAME),
             ]
+        );
+    }
+
+    public function onModuleConfigJs(HookRenderEvent $event)
+    {
+        $event->add(
+            $this->render("module-config-js.html")
         );
     }
 }

@@ -10,6 +10,7 @@
         </hook>
         <hook id="carousel.hook.back" class="Carousel\Hook\BackHook">
             <tag name="hook.event_listener" event="main.top-menu-tools" type="back" />
+            <tag name="hook.event_listener" event="module.config-js" type="back" />
         </hook>
     </hooks>
 </config>

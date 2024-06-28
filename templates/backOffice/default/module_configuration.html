@@ -74,7 +74,11 @@
                                         </div>
                                         <div class="col-xs-7">
                                             {form_field field="position{$ID}"}
-                                                <input id="position{$ID}" class="form-control" type="number" min="1" name="{$name}" value={$POSITION}>
+                                            <div class="text-center">
+                                                <a class="u-position-up" data-id="{$ID}"><i class="glyphicon glyphicon-arrow-up"></i></a>
+                                                <span class="js_editable_carousel_position editable editable-click" data-id="{$ID}">{$POSITION}</span>
+                                                <a class="u-position-down" data-id="{$ID}"><i class="glyphicon glyphicon-arrow-down"></i></a>
+                                            </div>
                                             {/form_field}
                                         </div>
                                     </div>

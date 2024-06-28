@@ -39,4 +39,8 @@
         <default key="_controller">Carousel\Controller\ConfigurationController::deleteAction</default>
     </route>
 
+    <route id="carousel.move-position" path="/admin/carousel/update-position">
+        <default key="_controller">Carousel\Controller\ConfigurationController::movePositionAction</default>
+    </route>
+
 </routes>
