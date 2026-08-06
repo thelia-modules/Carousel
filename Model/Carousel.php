@@ -17,14 +17,25 @@ use Propel\Runtime\ActiveQuery\ModelCriteria;
 use Propel\Runtime\Connection\ConnectionInterface;
 use Symfony\Component\Filesystem\Exception\IOException;
 use Symfony\Component\Filesystem\Filesystem;
-use Thelia\Files\FileModelInterface;
-use Thelia\Files\FileModelParentInterface;
+use Thelia\Core\File\FileModelInterface;
+use Thelia\Core\File\FileModelParentInterface;
 use Thelia\Form\BaseForm;
 
 class Carousel extends BaseCarousel implements FileModelInterface
 {
-    public function preDelete(ConnectionInterface $con = null)
+    /**
+     * Migration Thelia 3 : FileModelInterface::getFile() est desormais typee
+     * `string`, alors que la colonne `file` est nullable — Propel genere donc
+     * `?string` dans la classe de base et l'implementation devient incompatible.
+     * On restreint le type de retour ici (covariance legale) plutot que de rendre
+     * la colonne obligatoire, ce qui modifierait le schema de la table.
+     */
+    public function getFile(): string
     {
+        return (string) parent::getFile();
+    }
+
+    public function preDelete(?ConnectionInterface $con = null): bool {
         $carousel = new \Carousel\Carousel();
 
         $fs = new Filesystem();
@@ -45,8 +56,7 @@ class Carousel extends BaseCarousel implements FileModelInterface
      *
      * @return $this
      */
-    public function setParentId($parentId)
-    {
+    public function setParentId($parentId): static {
         return $this;
     }
 
@@ -55,16 +65,14 @@ class Carousel extends BaseCarousel implements FileModelInterface
      *
      * @return int parent id
      */
-    public function getParentId()
-    {
+    public function getParentId(): int {
         return $this->getId();
     }
 
     /**
      * @return FileModelParentInterface the parent file model
      */
-    public function getParentFileModel()
-    {
+    public function getParentFileModel(): \Thelia\Core\File\FileModelParentInterface {
         return new static();
     }
 
@@ -73,16 +81,14 @@ class Carousel extends BaseCarousel implements FileModelInterface
      *
      * @return BaseForm the form
      */
-    public function getUpdateFormId()
-    {
+    public function getUpdateFormId(): string {
         return 'carousel.image';
     }
 
     /**
      * @return string the path to the upload directory where files are stored, without final slash
      */
-    public function getUploadDir()
-    {
+    public function getUploadDir(): string {
         $carousel = new \Carousel\Carousel();
 
         return $carousel->getUploadDir();
@@ -91,8 +97,7 @@ class Carousel extends BaseCarousel implements FileModelInterface
     /**
      * @return string the URL to redirect to after update from the back-office
      */
-    public function getRedirectionUrl()
-    {
+    public function getRedirectionUrl(): string {
         return '/admin/module/Carousel';
     }
 
@@ -101,8 +106,7 @@ class Carousel extends BaseCarousel implements FileModelInterface
      *
      * @return ModelCriteria
      */
-    public function getQueryInstance()
-    {
+    public function getQueryInstance(): \Propel\Runtime\ActiveQuery\ModelCriteria {
         return CarouselQuery::create();
     }
 
@@ -111,7 +115,9 @@ class Carousel extends BaseCarousel implements FileModelInterface
      *
      * @return FileModelInterface
      */
-    public function setVisible($visible)
+    // Migration Thelia 3 : le parametre est desormais type dans l'interface
+    // (?int, car la colonne est un TINYINT nullable et non un booleen).
+    public function setVisible(?int $visible = null): static
     {
         // Not implemented
 

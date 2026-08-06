@@ -33,7 +33,7 @@ use Thelia\Type\TypeCollection;
  */
 class Carousel extends Image
 {
-    protected function getArgDefinitions()
+    protected function getArgDefinitions(): \Thelia\Core\Template\Loop\Argument\ArgumentCollection
     {
         return new ArgumentCollection(
             Argument::createIntTypeArgument('width'),
@@ -68,7 +68,7 @@ class Carousel extends Image
      *
      * @return LoopResult
      */
-    public function parseResults(LoopResult $loopResult)
+    public function parseResults(LoopResult $loopResult): LoopResult
     {
         /** @var \Carousel\Model\Carousel $carousel */
         foreach ($loopResult->getResultDataCollection() as $carousel) {
@@ -196,7 +196,7 @@ class Carousel extends Image
      *
      * @return \Propel\Runtime\ActiveQuery\ModelCriteria
      */
-    public function buildModelCriteria()
+    public function buildModelCriteria(): \Propel\Runtime\ActiveQuery\ModelCriteria
     {
         $search = CarouselQuery::create();
         $group = $this->getGroup();

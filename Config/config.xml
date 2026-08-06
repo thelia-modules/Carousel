@@ -2,14 +2,8 @@
 <config xmlns="http://thelia.net/schema/dic/config"
         xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
         xsi:schemaLocation="http://thelia.net/schema/dic/config http://thelia.net/schema/dic/config/thelia-1.0.xsd">
-    <hooks>
-        <hook id="carousel.hook">
-            <tag name="hook.event_listener" event="home.body" type="front" templates="render:carousel.html" />
-            <tag name="hook.event_listener" event="module.configuration" type="back" templates="render:module_configuration.html" />
-            <tag name="hook.event_listener" event="module.config-js" type="back" templates="js:assets/js/module-configuration.js" />
-        </hook>
-        <hook id="carousel.hook.back" class="Carousel\Hook\BackHook">
-            <tag name="hook.event_listener" event="main.top-menu-tools" type="back" />
-        </hook>
-    </hooks>
+
+    <!-- Les hooks back-office sont enregistrés par Carousel\Hook\BackHook::getSubscribedHooks()
+         (auto-discovery Thelia 3). L'affichage front est à la charge du thème
+         (resources('/api/front/...') ou theme_hook), plus de rendu Smarty déclaratif. -->
 </config>

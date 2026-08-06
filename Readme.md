@@ -2,6 +2,9 @@
 
 This module for Thelia add a customizable carousel on your home page. You can upload you own image and overload the default template in your template for using the carousel.
 
+> **Thelia 3 branch**: the back-office configuration screen is rendered with Twig only.
+> This branch requires the Twig back-office (`active-admin-template = default-twig`).
+
 ## Installation
 
 * Copy the module into ```<thelia_root>/local/modules/``` directory and be sure that the name of the module is Carousel.

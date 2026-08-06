@@ -1,0 +1,127 @@
+{# Fragment rendu par le hook `module.configuration` (Carousel\Hook\BackHook::onModuleConfiguration).
+   Pas de `extends` : injecte dans le contenu de la page cœur `module/configure.html.twig`.
+
+   Les FormView sont recuperees ici via la fonction Twig `getForm()` (module TwigEngine) : les
+   services de hook de ce module (carousel.hook, carousel.hook.back) sont declares dans
+   Config/config.xml sans autowiring (hors perimetre de cette migration), donc `TheliaFormFactory`
+   n'est pas injectable dans BackHook. `getForm(name, data)` s'execute dans l'environnement Twig
+   (pleinement autowire) : le second argument pre-remplit les champs (position/alt/titre/...) pour
+   chaque diapositive, key par key, avec les valeurs preparees en PHP dans `form_data`. #}
+<div class="card mb-3" data-testid="carousel-upload">
+    <div class="card-body">
+        <h2 class="h5 mb-3">{{ 'Add an image to the carousel'|trans({}, 'carousel.bo.default') }}</h2>
+
+        {% set imageForm = getForm('carousel_form_carousel_image_form') %}
+        {% form_theme imageForm with bo_form_themes only %}
+        {{ form_start(imageForm, { action: upload_url, method: 'post', attr: { 'data-testid': 'carousel-upload-form' } }) }}
+            <div class="input-group">
+                {{ form_widget(imageForm.file) }}
+                <button type="submit" class="btn btn-success" data-testid="carousel-upload-submit">
+                    {{ 'Add this image to the carousel'|trans({}, 'carousel.bo.default') }}
+                </button>
+            </div>
+            {{ form_errors(imageForm.file) }}
+        {{ form_end(imageForm) }}
+    </div>
+</div>
+
+<div class="card" data-testid="carousel-list">
+    <div class="card-body">
+        <h2 class="h5 mb-3">{{ 'Carousel images'|trans({}, 'carousel.bo.default') }}</h2>
+
+        {% if slides is empty %}
+            <div class="alert alert-info" data-testid="carousel-empty">
+                {{ 'Your carousel contains no image. Please add one using the form above.'|trans({}, 'carousel.bo.default') }}
+            </div>
+        {% else %}
+            {% set updateForm = getForm('carousel_update', form_data) %}
+            {% form_theme updateForm with bo_form_themes only %}
+            {{ form_start(updateForm, { action: update_url, method: 'post', attr: { 'data-testid': 'carousel-update-form' } }) }}
+
+                {% for slide in slides %}
+                    <div class="card mb-3" data-testid="carousel-slide-{{ slide.id }}">
+                        <div class="card-body">
+                            <div class="row">
+                                <div class="col-md-5">
+                                    {% if slide.image_url %}
+                                        <p>
+                                            <a href="{{ slide.original_image_url }}" target="_blank">
+                                                <img src="{{ slide.image_url }}" alt="{{ slide.title }}" class="img-thumbnail">
+                                            </a>
+                                        </p>
+                                    {% endif %}
+
+                                    <button type="button" class="btn btn-outline-danger btn-sm carousel-image-delete"
+                                            data-bs-toggle="modal" data-bs-target="#delete-carousel-dialog" data-id="{{ slide.id }}"
+                                            data-testid="carousel-slide-delete-{{ slide.id }}">
+                                        <i class="bi bi-trash" aria-hidden="true"></i> {{ 'Remove this image'|trans({}, 'carousel.bo.default') }}
+                                    </button>
+
+                                    <div class="row mt-3">
+                                        <div class="col-6">{{ form_row(updateForm['position' ~ slide.id]) }}</div>
+                                        <div class="col-6 pt-4">
+                                            <div class="form-check">
+                                                {{ form_widget(updateForm['disable' ~ slide.id]) }}
+                                                <label class="form-check-label" for="{{ updateForm['disable' ~ slide.id].vars.id }}">{{ updateForm['disable' ~ slide.id].vars.label }}</label>
+                                            </div>
+                                        </div>
+                                    </div>
+
+                                    <div class="form-check mb-2">
+                                        {{ form_widget(updateForm['limited' ~ slide.id]) }}
+                                        <label class="form-check-label" for="{{ updateForm['limited' ~ slide.id].vars.id }}">{{ updateForm['limited' ~ slide.id].vars.label }}</label>
+                                    </div>
+
+                                    <div class="row">
+                                        <div class="col-6">{{ form_row(updateForm['start_date' ~ slide.id]) }}</div>
+                                        <div class="col-6">{{ form_row(updateForm['end_date' ~ slide.id]) }}</div>
+                                    </div>
+                                </div>
+
+                                <div class="col-md-7">
+                                    {{ form_row(updateForm['title' ~ slide.id]) }}
+                                    {{ form_row(updateForm['alt' ~ slide.id]) }}
+                                    {{ form_row(updateForm['url' ~ slide.id]) }}
+                                    {{ form_row(updateForm['chapo' ~ slide.id]) }}
+                                    {{ form_row(updateForm['description' ~ slide.id], { attr: { class: 'wysiwyg' } }) }}
+                                    {{ form_row(updateForm['group' ~ slide.id]) }}
+                                    {{ form_row(updateForm['postscriptum' ~ slide.id]) }}
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                {% endfor %}
+
+                <div class="d-flex justify-content-end">
+                    <button type="submit" class="btn btn-primary" data-testid="carousel-update-submit">
+                        <i class="bi bi-check2" aria-hidden="true"></i> {{ 'Save'|trans }}
+                    </button>
+                </div>
+            {{ form_end(updateForm) }}
+        {% endif %}
+    </div>
+</div>
+
+<div class="modal fade" id="delete-carousel-dialog" tabindex="-1" aria-hidden="true" data-testid="carousel-delete-modal">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <form method="post" action="{{ delete_url }}">
+                <div class="modal-header">
+                    <h5 class="modal-title">{{ 'Delete a carousel image'|trans({}, 'carousel.bo.default') }}</h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                </div>
+                <div class="modal-body">
+                    {{ 'Do you really want to remove this image from the carousel ?'|trans({}, 'carousel.bo.default') }}
+                    <input type="hidden" name="image_id" id="carousel-image-delete-id" value="">
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-outline-secondary" data-bs-dismiss="modal">{{ 'Cancel'|trans }}</button>
+                    <button type="submit" class="btn btn-danger" data-testid="carousel-delete-confirm">{{ 'Remove this image'|trans({}, 'carousel.bo.default') }}</button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+
+{# Le <script> du module est injecte par le hook `module.config-js`
+   (Carousel\Hook\BackHook::insertTemplate) dans le bloc scripts_extra de la page cœur. #}

@@ -19,6 +19,7 @@ use Carousel\Model\CarouselQuery;
 use Symfony\Component\Form\Form;
 use Symfony\Component\HttpFoundation\File\UploadedFile;
 use Symfony\Component\HttpFoundation\RedirectResponse;
+use Symfony\Component\Routing\Attribute\Route;
 use Symfony\Contracts\EventDispatcher\EventDispatcherInterface;
 use Thelia\Controller\Admin\BaseAdminController;
 use Thelia\Core\Event\File\FileCreateOrUpdateEvent;
@@ -39,6 +40,7 @@ use Thelia\Tools\URL;
  */
 class ConfigurationController extends BaseAdminController
 {
+    #[Route('/admin/module/carousel/upload', name: 'carousel.upload.image', methods: ['POST'])]
     public function uploadImage(
         Request $request,
         TheliaFormFactory $formFactory,
@@ -87,12 +89,13 @@ class ConfigurationController extends BaseAdminController
                 $form
             );
 
-            $response = $this->render(
-                'module-configure',
-                [
-                    'module_code' => 'Carousel',
-                ]
-            );
+            // Migration Thelia 3 : 'module-configure' etait le nom d'un template Thelia 2
+            // qui n'existe plus en T3 (500 ou rendu casse). La page de configuration passe
+            // desormais par la route coeur admin.module.configure (redirection), qui
+            // redispatche le hook module.configuration : celui-ci retrouve le formulaire en
+            // erreur via ParserContext (setupFormErrorContext ci-dessus, session), exactement
+            // comme le fait deja le chemin "succes" de cette meme methode.
+            $response = $this->redirectToConfigurationPage();
         }
 
         return $response;
@@ -112,6 +115,7 @@ class ConfigurationController extends BaseAdminController
         return $value;
     }
 
+    #[Route('/admin/module/carousel/update', name: 'carousel.update', methods: ['POST'])]
     public function updateAction(
         TheliaFormFactory $formFactory
     ) {
@@ -163,12 +167,14 @@ class ConfigurationController extends BaseAdminController
                 $form
             );
 
-            $response = $this->render('module-configure', ['module_code' => 'Carousel']);
+            // Migration Thelia 3 : voir le commentaire equivalent dans uploadImage() ci-dessus.
+            $response = $this->redirectToConfigurationPage();
         }
 
         return $response;
     }
 
+    #[Route('/admin/module/carousel/delete', name: 'carousel.delete', methods: ['POST'])]
     public function deleteAction(
         Request $request
     ) {

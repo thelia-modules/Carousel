@@ -17,7 +17,7 @@ use Symfony\Component\DependencyInjection\Loader\Configurator\ServicesConfigurat
 use Symfony\Component\Filesystem\Filesystem;
 use Symfony\Component\Finder\Finder;
 use Symfony\Component\Finder\SplFileInfo;
-use Thelia\Install\Database;
+use Thelia\Core\Install\Database;
 use Thelia\Model\ConfigQuery;
 use Thelia\Module\BaseModule;
 
@@ -33,7 +33,7 @@ class Carousel extends BaseModule
     /**
      * @return bool true to continue module activation, false to prevent it
      */
-    public function preActivation(ConnectionInterface $con = null)
+    public function preActivation(?ConnectionInterface $con = null): bool
     {
         if (!self::getConfigValue('is_initialized', false)) {
             $database = new Database($con);
@@ -46,7 +46,7 @@ class Carousel extends BaseModule
         return true;
     }
 
-    public function destroy(ConnectionInterface $con = null, $deleteModuleData = false): void
+    public function destroy(?ConnectionInterface $con = null, $deleteModuleData = false): void
     {
         $database = new Database($con);
 
@@ -72,7 +72,7 @@ class Carousel extends BaseModule
      *
      * @author Thomas Arnaud <tarnaud@openstudio.fr>
      */
-    public function update($currentVersion, $newVersion, ConnectionInterface $con = null): void
+    public function update($currentVersion, $newVersion, ?ConnectionInterface $con = null): void
     {
         $uploadDir = $this->getUploadDir();
         $fileSystem = new Filesystem();
@@ -117,7 +117,12 @@ class Carousel extends BaseModule
     public static function configureServices(ServicesConfigurator $servicesConfigurator): void
     {
         $servicesConfigurator->load(self::getModuleCode().'\\', __DIR__)
-            ->exclude([THELIA_MODULE_DIR.ucfirst(self::getModuleCode()).'/I18n/*'])
+            ->exclude([
+                __DIR__.'/I18n',
+                __DIR__.'/Config',
+                __DIR__.'/Tests',
+                __FILE__,
+            ])
             ->autowire(true)
             ->autoconfigure(true);
     }
